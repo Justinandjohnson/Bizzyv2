@@ -31,6 +31,7 @@
     "openai": "^4.0.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "react-force-graph": "^1.44.5",
     "react-force-graph-2d": "^1.25.6",
     "tailwind-merge": "^2.5.2"
   },
