@@ -54,52 +54,75 @@ const runCommand = (command, args = []) => {
 const question = (query) =>
   new Promise((resolve) => rl.question(query, resolve));
 
+async function getLatestRepos() {
+  try {
+    const output = await runCommand("gh", [
+      "repo",
+      "list",
+      "--limit",
+      "3",
+      "--json",
+      "name,url",
+    ]);
+    return JSON.parse(output);
+  } catch (error) {
+    console.error("Failed to fetch repositories:", error);
+    return null;
+  }
+}
+
 async function deployProject() {
   console.log("Starting deployment process");
 
   try {
-    // Check current git remote
-    const remoteUrl = await runCommand("git", [
-      "config",
-      "--get",
-      "remote.origin.url",
-    ]);
-    if (remoteUrl) {
-      console.log(`Current repository: ${remoteUrl}`);
-      const confirmRepo = await question(
-        "Is this the correct repository? (yes/no): "
+    const repos = await getLatestRepos();
+    if (!repos) {
+      console.log(
+        "Failed to fetch repositories. Please ensure you're logged in to GitHub CLI."
       );
-      if (confirmRepo.toLowerCase() !== "yes") {
-        console.log(
-          "Please navigate to the correct repository directory and run the script again."
-        );
-        return;
-      }
-    } else {
-      console.log("No git remote found.");
-      const createNew = await question(
-        "Do you want to create a new GitHub repository? (yes/no): "
-      );
-      if (createNew.toLowerCase() === "yes") {
-        const repoName = await question(
-          "Enter the name for your new GitHub repository: "
-        );
-        console.log("Creating GitHub repository...");
-        await runCommand("gh", [
-          "repo",
-          "create",
-          repoName,
-          "--public",
-          "--source=.",
-          "--remote=origin",
-        ]);
-      } else {
-        console.log(
-          "Cannot proceed without a git remote. Please set up your repository and try again."
-        );
-        return;
-      }
+      return;
     }
+
+    console.log("Your latest 3 repositories:");
+    repos.forEach((repo, index) => {
+      console.log(`${index + 1}. ${repo.name} (${repo.url})`);
+    });
+
+    const choice = await question(
+      "Enter the number of the repository you want to update (or 'n' for a new repo): "
+    );
+
+    let remoteUrl;
+    if (choice.toLowerCase() === "n") {
+      const repoName = await question(
+        "Enter the name for your new GitHub repository: "
+      );
+      console.log("Creating GitHub repository...");
+      await runCommand("gh", [
+        "repo",
+        "create",
+        repoName,
+        "--public",
+        "--source=.",
+        "--remote=origin",
+      ]);
+      remoteUrl = `https://github.com/${await runCommand("gh", [
+        "api",
+        "user",
+        "--jq",
+        ".login",
+      ])}/${repoName}.git`;
+    } else {
+      const index = parseInt(choice) - 1;
+      if (isNaN(index) || index < 0 || index >= repos.length) {
+        console.log("Invalid choice. Exiting.");
+        return;
+      }
+      remoteUrl = repos[index].url;
+      await runCommand("git", ["remote", "set-url", "origin", remoteUrl]);
+    }
+
+    console.log(`Using repository: ${remoteUrl}`);
 
     // Git operations
     console.log("Checking for changes...");
