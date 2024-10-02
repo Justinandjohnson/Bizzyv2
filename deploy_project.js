@@ -55,8 +55,17 @@ async function deployProject() {
   runCommand("git add .");
   runCommand('git commit -m "Update for deployment"');
 
+  // Get current branch name
+  const currentBranch = execSync("git rev-parse --abbrev-ref HEAD")
+    .toString()
+    .trim();
+  console.log(`Current branch: ${currentBranch}`);
+
   console.log("Pushing to GitHub...");
-  runCommand("git push");
+  if (!runCommand(`git push --set-upstream origin ${currentBranch}`)) {
+    console.error("Failed to push to GitHub");
+    return;
+  }
 
   // Install Vercel CLI locally
   console.log("Installing Vercel CLI locally...");
@@ -64,10 +73,6 @@ async function deployProject() {
     console.error("Failed to install Vercel CLI locally");
     return;
   }
-
-  // Ensure Vercel is authenticated
-  console.log("Ensuring Vercel authentication...");
-  runCommand("npx vercel login");
 
   // Deploy to Vercel
   console.log("Deploying to Vercel...");
