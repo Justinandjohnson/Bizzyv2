@@ -11,12 +11,11 @@ const rl = readline.createInterface({
 
 const runCommand = (command, args = []) => {
   return new Promise((resolve, reject) => {
-    console.log(
-      `Executing command: ${command} ${args
-        .map((arg) => (arg.includes(" ") ? `"${arg}"` : arg))
-        .join(" ")}`
+    const quotedArgs = args.map((arg) =>
+      arg.includes(" ") ? `"${arg}"` : arg
     );
-    const process = spawn(command, args, { stdio: "pipe", shell: true });
+    console.log(`Executing command: ${command} ${quotedArgs.join(" ")}`);
+    const process = spawn(command, quotedArgs, { stdio: "pipe", shell: true });
 
     let output = "";
     let progressIndicator;
@@ -103,9 +102,16 @@ async function deployProject() {
     }
 
     // Git operations
-    console.log("Committing changes...");
-    await runCommand("git", ["add", "."]);
-    await runCommand("git", ["commit", "-m", '"Update for deployment"']);
+    console.log("Checking for changes...");
+    const status = await runCommand("git", ["status", "--porcelain"]);
+
+    if (status) {
+      console.log("Changes detected. Committing...");
+      await runCommand("git", ["add", "."]);
+      await runCommand("git", ["commit", "-m", "Update for deployment"]);
+    } else {
+      console.log("No changes detected. Skipping commit.");
+    }
 
     // Get current branch name
     const currentBranch = await runCommand("git", [
