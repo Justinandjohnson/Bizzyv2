@@ -42,10 +42,23 @@ const config: Config = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        "neon-green": {
+          DEFAULT: "#39FF14",
+          dark: "#32CD32",
+        },
       },
     },
   },
-  plugins: [],
+  plugins: [
+    function ({ addUtilities }) {
+      const newUtilities = {
+        ".glow-neon-green": {
+          boxShadow: "0 0 10px #39FF14, 0 0 20px #39FF14, 0 0 30px #39FF14",
+        },
+      };
+      addUtilities(newUtilities, ["hover", "focus"]);
+    },
+  ],
 };
 
 export default config;
