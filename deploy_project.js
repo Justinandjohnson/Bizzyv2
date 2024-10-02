@@ -11,10 +11,15 @@ const rl = readline.createInterface({
 
 const runCommand = (command, args = []) => {
   return new Promise((resolve, reject) => {
-    console.log(`Executing command: ${command} ${args.join(" ")}`);
+    console.log(
+      `Executing command: ${command} ${args
+        .map((arg) => (arg.includes(" ") ? `"${arg}"` : arg))
+        .join(" ")}`
+    );
     const process = spawn(command, args, { stdio: "pipe", shell: true });
 
     let output = "";
+    let progressIndicator;
 
     process.stdout.on("data", (data) => {
       output += data.toString();
@@ -25,7 +30,18 @@ const runCommand = (command, args = []) => {
       console.error(data.toString());
     });
 
+    // Start progress indicator for long-running commands
+    if (command === "git" && args[0] === "push") {
+      progressIndicator = setInterval(() => {
+        process.stdout.write(".");
+      }, 1000);
+    }
+
     process.on("close", (code) => {
+      if (progressIndicator) {
+        clearInterval(progressIndicator);
+        console.log("\n"); // New line after progress dots
+      }
       if (code === 0) {
         resolve(output.trim());
       } else {
