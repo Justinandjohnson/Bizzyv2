@@ -12,11 +12,10 @@ const rl = readline.createInterface({
 const runCommand = (command) => {
   console.log(`Executing command: ${command}`);
   try {
-    execSync(command, { stdio: "inherit" });
-    return true;
+    return execSync(command, { encoding: "utf8" });
   } catch (error) {
     console.error(`Failed to execute ${command}`, error);
-    return false;
+    return null;
   }
 };
 
@@ -26,28 +25,43 @@ const question = (query) =>
 async function deployProject() {
   console.log("Starting deployment process");
 
-  // Ask user if they want to create a new repository or update an existing one
-  const createNew = await question(
-    "Do you want to create a new GitHub repository? (yes/no): "
-  );
-
-  if (createNew.toLowerCase() === "yes") {
-    const repoName = await question(
-      "Enter the name for your new GitHub repository: "
+  // Check current git remote
+  const remoteUrl = runCommand("git config --get remote.origin.url");
+  if (remoteUrl) {
+    console.log(`Current repository: ${remoteUrl.trim()}`);
+    const confirmRepo = await question(
+      "Is this the correct repository? (yes/no): "
     );
-    console.log("Creating GitHub repository...");
-    if (
-      !runCommand(
-        `gh repo create ${repoName} --public --source=. --remote=origin`
-      )
-    ) {
-      console.error("Failed to create GitHub repository");
+    if (confirmRepo.toLowerCase() !== "yes") {
+      console.log(
+        "Please navigate to the correct repository directory and run the script again."
+      );
       return;
     }
   } else {
-    console.log(
-      "Using existing repository. Make sure you are in the correct directory."
+    console.log("No git remote found.");
+    const createNew = await question(
+      "Do you want to create a new GitHub repository? (yes/no): "
     );
+    if (createNew.toLowerCase() === "yes") {
+      const repoName = await question(
+        "Enter the name for your new GitHub repository: "
+      );
+      console.log("Creating GitHub repository...");
+      if (
+        !runCommand(
+          `gh repo create ${repoName} --public --source=. --remote=origin`
+        )
+      ) {
+        console.error("Failed to create GitHub repository");
+        return;
+      }
+    } else {
+      console.log(
+        "Cannot proceed without a git remote. Please set up your repository and try again."
+      );
+      return;
+    }
   }
 
   // Git operations
@@ -56,9 +70,7 @@ async function deployProject() {
   runCommand('git commit -m "Update for deployment"');
 
   // Get current branch name
-  const currentBranch = execSync("git rev-parse --abbrev-ref HEAD")
-    .toString()
-    .trim();
+  const currentBranch = runCommand("git rev-parse --abbrev-ref HEAD").trim();
   console.log(`Current branch: ${currentBranch}`);
 
   console.log("Pushing to GitHub...");
@@ -76,6 +88,7 @@ async function deployProject() {
 
   // Deploy to Vercel
   console.log("Deploying to Vercel...");
+  console.log("You may be prompted to log in or confirm deployment settings.");
   if (!runCommand("npx vercel --prod")) {
     console.error("Failed to deploy to Vercel");
     return;
@@ -83,7 +96,7 @@ async function deployProject() {
 
   console.log("Deployment successful!");
   console.log(
-    "Please set up your environment variables in the Vercel dashboard."
+    "Please set up your environment variables in the Vercel dashboard if you haven't already."
   );
   console.log("Update your frontend API URL to use the Vercel-provided URL.");
 
