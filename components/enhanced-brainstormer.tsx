@@ -36,6 +36,7 @@ import dynamic from "next/dynamic";
 import {
   ForceGraphMethods,
   NodeObject as ForceGraphNodeObject,
+  ForceGraphProps,
 } from "react-force-graph-2d";
 import { debounce } from "lodash";
 import * as d3 from "d3-force";
@@ -69,6 +70,11 @@ import ForceGraphInstance from "react-force-graph-2d";
 // Extend the imported MarketAnalysis interface
 interface ExtendedMarketAnalysis extends MarketAnalysis {
   errorMessage?: string;
+}
+
+interface ExtendedForceGraphMethods extends ForceGraphMethods<Node, Link> {
+  canvas: HTMLCanvasElement;
+  // Add any additional methods you need
 }
 
 const ForceGraph2D = dynamic(() => import("react-force-graph-2d"), {
@@ -276,11 +282,6 @@ const extractInitialSteps = (details: string) => {
     : [];
 };
 
-interface ExtendedForceGraphMethods
-  extends ForceGraphMethods<NodeObject, LinkObject> {
-  canvas: HTMLCanvasElement;
-}
-
 export function EnhancedBrainstormer() {
   const [messages, setMessages] = useState<
     { text: string; sender: "user" | "ai" }[]
@@ -374,7 +375,7 @@ export function EnhancedBrainstormer() {
   const [showPitchOverlay, setShowPitchOverlay] = useState(false);
   const [isPitchPanelCollapsed, setIsPitchPanelCollapsed] = useState(false);
 
-  const graphRef = useRef<ExtendedForceGraphMethods>(null);
+  const graphRef = useRef<ExtendedForceGraphMethods | null>(null);
   const workerRef = useRef<Worker | null>(null);
 
   useEffect(() => {
@@ -1410,11 +1411,10 @@ export function EnhancedBrainstormer() {
             <div className="relative pt-1">
               <div className="overflow-hidden h-2 mb-4 text-xs flex rounded bg-purple-200">
                 <motion.div
-                  style={{ width: `${progress}%` }}
-                  className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-purple-500"
                   initial={{ width: 0 }}
                   animate={{ width: `${progress}%` }}
                   transition={{ duration: 0.5 }}
+                  className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-purple-500"
                 />
               </div>
             </div>
@@ -1565,7 +1565,9 @@ export function EnhancedBrainstormer() {
                         >
                           <ForceGraph2D
                             ref={
-                              graphRef as React.MutableRefObject<ExtendedForceGraphMethods>
+                              graphRef as React.MutableRefObject<
+                                ForceGraphMethods<Node, Link> | undefined
+                              >
                             }
                             graphData={
                               graphData as unknown as {
@@ -1743,40 +1745,26 @@ export function EnhancedBrainstormer() {
                             onNodeDrag={handleNodeDrag}
                             onNodeDragEnd={handleNodeDragEnd}
                             onBackgroundClick={handleBackgroundClick}
-                            d3Force={(engine: ForceGraphInstance) => {
-                              engine
-                                .force(
-                                  "link",
-                                  d3
-                                    .forceLink<Node, Link>()
-                                    .id((d) => d.id)
-                                    .distance(
-                                      (link) =>
-                                        link.distance || NODE_DISTANCE * 1.2
-                                    )
-                                    .strength(linkStrength)
+                            d3Force={{
+                              link: d3
+                                .forceLink<Node, Link>()
+                                .id((d) => d.id)
+                                .distance(
+                                  (link) => link.distance || NODE_DISTANCE * 1.2
                                 )
-                                .force(
-                                  "charge",
-                                  d3
-                                    .forceManyBody<Node>()
-                                    .strength(chargeStrength)
+                                .strength(linkStrength),
+                              charge: d3
+                                .forceManyBody<Node>()
+                                .strength(chargeStrength),
+                              collide: d3
+                                .forceCollide<Node>(NODE_DISTANCE / 2)
+                                .strength(collideStrength),
+                              center: d3
+                                .forceCenter(
+                                  mindMapWidth / 2,
+                                  mindMapHeight / 2
                                 )
-                                .force(
-                                  "collide",
-                                  d3
-                                    .forceCollide<Node>(NODE_DISTANCE / 2)
-                                    .strength(collideStrength)
-                                )
-                                .force(
-                                  "center",
-                                  d3
-                                    .forceCenter(
-                                      mindMapWidth / 2,
-                                      mindMapHeight / 2
-                                    )
-                                    .strength(centerStrength)
-                                );
+                                .strength(centerStrength),
                             }}
                             cooldownTicks={100}
                             enableNodeDrag={true}
@@ -1795,8 +1783,10 @@ export function EnhancedBrainstormer() {
                             width={mindMapWidth}
                             height={mindMapHeight}
                             onEngineStop={() => {
-                              graphRef.current?.zoomToFit(400, 100);
-                              graphRef.current?.d3ReheatSimulation();
+                              if (graphRef.current) {
+                                graphRef.current.zoomToFit(400, 100);
+                                graphRef.current.d3ReheatSimulation();
+                              }
                             }}
                           />
                           <div className="absolute top-2 right-2 flex flex-col items-end space-y-2">
