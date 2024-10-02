@@ -17,7 +17,6 @@
     "vercel-build": "npm run build"
   },
   "dependencies": {
-    "@next/swc-darwin-arm64": "^14.2.13",
     "@radix-ui/react-label": "^2.1.0",
     "@radix-ui/react-progress": "^1.1.0",
     "@radix-ui/react-scroll-area": "^1.1.0",
