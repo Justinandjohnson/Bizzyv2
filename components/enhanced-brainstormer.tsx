@@ -1465,26 +1465,8 @@ export function EnhancedBrainstormer() {
     <>
       <ResizableStyles />
       <div className="relative min-h-screen w-full overflow-hidden">
-        {/* Video Background */}
-        {isMounted && (
-          <video
-            autoPlay
-            loop
-            muted
-            playsInline
-            preload="auto"
-            className="absolute top-0 left-0 w-full h-full object-cover z-0"
-          >
-            <source
-              src="/vecteezy_twisted-gradient-color-pastel-stripes-rippling-background_2018399.mov"
-              type="video/quicktime"
-            />
-            Your browser does not support the video tag.
-          </video>
-        )}
-
-        {/* Content Overlay */}
-        <div className="relative z-10 min-h-screen w-full bg-black bg-opacity-50 flex items-center justify-center p-4">
+        {/* Content */}
+        <div className="relative z-10 min-h-screen w-full bg-gradient-to-br from-purple-100 to-indigo-200 flex items-center justify-center p-4">
           <div className="container mx-auto max-w-full h-full flex flex-col">
             <Card className="flex-grow shadow-lg bg-white bg-opacity-90 backdrop-blur-sm overflow-hidden">
               <h1 className="text-3xl font-bold mb-6 text-[#2D3748] flex items-center">
