@@ -36,7 +36,6 @@ import dynamic from "next/dynamic";
 import {
   ForceGraphMethods,
   NodeObject as ForceGraphNodeObject,
-  LinkObject,
 } from "react-force-graph-2d";
 import { debounce } from "lodash";
 import * as d3 from "d3-force";
@@ -53,6 +52,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import * as d3Force from "d3-force";
+import { NodeObject, LinkObject } from "force-graph";
 import { mean } from "d3-array";
 import { ForceControlPanel } from "./ForceControlPanel";
 import {
