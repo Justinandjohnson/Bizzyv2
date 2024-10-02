@@ -13,11 +13,11 @@ const runCommand = (command) => {
   console.log(`Executing command: ${command}`);
   try {
     execSync(command, { stdio: "inherit" });
+    return true;
   } catch (error) {
     console.error(`Failed to execute ${command}`, error);
     return false;
   }
-  return true;
 };
 
 const question = (query) =>
@@ -67,13 +67,19 @@ async function deployProject() {
   console.log("Pushing to GitHub...");
   runCommand("git push -u origin main");
 
-  // Step 7: Install Vercel CLI
-  console.log("Installing Vercel CLI...");
-  runCommand("npm install -g vercel");
+  // Install Vercel CLI locally
+  console.log("Installing Vercel CLI locally...");
+  if (!runCommand("npm install --save-dev vercel")) {
+    console.error("Failed to install Vercel CLI locally");
+    return;
+  }
 
-  // Step 8: Deploy to Vercel
+  // Deploy to Vercel
   console.log("Deploying to Vercel...");
-  runCommand("vercel --prod");
+  if (!runCommand("npx vercel --prod")) {
+    console.error("Failed to deploy to Vercel");
+    return;
+  }
 
   console.log("Deployment successful!");
   console.log(
