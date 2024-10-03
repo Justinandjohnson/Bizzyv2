@@ -1,17 +1,15 @@
-import { NextApiRequest, NextApiResponse } from 'next';
-import { openai, searchTavily } from './utils';
-import { getFinancialPlan, getCompetitorAnalysis } from "../../components/business-insights";
-import getIndustryTrends from "../../components/industry-trends";
-import { conductMarketAnalysis } from "../../components/market-analysis";
+import { NextApiRequest, NextApiResponse } from "next";
+import { openai } from "./utils";
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method === 'POST') {
-    try {
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse
+) {
+  if (req.method !== "POST") {
+    res.setHeader("Allow", ["POST"]);
+    return res.status(405).end(`Method ${req.method} Not Allowed`);
   }
-});
 
-// 3. /api/trends endpoint
-app.get("/api/trends", async (req, res) => {
   try {
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
@@ -34,12 +32,7 @@ app.get("/api/trends", async (req, res) => {
     const trends = JSON.parse(response.choices[0].message.content || "[]");
     res.json({ trends });
   } catch (error) {
-    } catch (error) {
-      console.error(`Error in trends:`, error);
-      res.status(500).json({ error: `Error in trends` });
-    }
-  } else {
-    res.setHeader('Allow', ['POST']);
-    res.status(405).end(`Method ${req.method} Not Allowed`);
+    console.error(`Error in trends:`, error);
+    res.status(500).json({ error: `Error in trends` });
   }
 }

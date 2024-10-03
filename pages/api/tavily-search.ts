@@ -1,17 +1,15 @@
-import { NextApiRequest, NextApiResponse } from 'next';
-import { openai, searchTavily } from './utils';
-import { getFinancialPlan, getCompetitorAnalysis } from "../../components/business-insights";
-import getIndustryTrends from "../../components/industry-trends";
-import { conductMarketAnalysis } from "../../components/market-analysis";
+import { NextApiRequest, NextApiResponse } from "next";
+import { searchTavily } from "./utils";
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method === 'POST') {
-    try {
-    res.status(500).json({ error: "Error in AI analysis" });
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse
+) {
+  if (req.method !== "POST") {
+    res.setHeader("Allow", ["POST"]);
+    return res.status(405).end(`Method ${req.method} Not Allowed`);
   }
-});
 
-app.post("/api/tavily-search", async (req, res) => {
   const { searchableTerms } = req.body;
   if (
     !searchableTerms ||
@@ -36,13 +34,6 @@ app.post("/api/tavily-search", async (req, res) => {
     res.json(results.flat());
   } catch (error) {
     console.error("Error in Tavily search:", error);
-    res.status(500).json({
-    } catch (error) {
-      console.error(`Error in tavily-search:`, error);
-      res.status(500).json({ error: `Error in tavily-search` });
-    }
-  } else {
-    res.setHeader('Allow', ['POST']);
-    res.status(405).end(`Method ${req.method} Not Allowed`);
+    res.status(500).json({ error: "Error in tavily-search" });
   }
 }

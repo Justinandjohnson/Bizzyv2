@@ -1,20 +1,19 @@
-import { NextApiRequest, NextApiResponse } from 'next';
-import { openai, searchTavily } from './utils';
-import { getFinancialPlan, getCompetitorAnalysis } from "../../components/business-insights";
-import getIndustryTrends from "../../components/industry-trends";
-import { conductMarketAnalysis } from "../../components/market-analysis";
+import { NextApiRequest, NextApiResponse } from "next";
+import { openai } from "./utils";
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method === 'POST') {
-    try {
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse
+) {
+  if (req.method !== "POST") {
+    res.setHeader("Allow", ["POST"]);
+    return res.status(405).end(`Method ${req.method} Not Allowed`);
   }
-});
 
-app.post("/api/interpret-analysis", async (req, res) => {
-  const { prompt } = req.body;
   try {
+    const { prompt } = req.body;
     const stream = await openai.chat.completions.create({
-      model: "gpt-4o",
+      model: "gpt-4",
       messages: [{ role: "user", content: prompt }],
       temperature: 0.7,
       max_tokens: 1000,
@@ -34,12 +33,8 @@ app.post("/api/interpret-analysis", async (req, res) => {
 
     res.write(`data: [DONE]\n\n`);
     res.end();
-    } catch (error) {
-      console.error(`Error in interpret-analysis:`, error);
-      res.status(500).json({ error: `Error in interpret-analysis` });
-    }
-  } else {
-    res.setHeader('Allow', ['POST']);
-    res.status(405).end(`Method ${req.method} Not Allowed`);
+  } catch (error) {
+    console.error(`Error in interpret-analysis:`, error);
+    res.status(500).json({ error: `Error in interpret-analysis` });
   }
 }

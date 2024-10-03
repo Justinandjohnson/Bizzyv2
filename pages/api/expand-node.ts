@@ -1,29 +1,27 @@
-import { NextApiRequest, NextApiResponse } from 'next';
-import { openai, searchTavily } from './utils';
-import { getFinancialPlan, getCompetitorAnalysis } from "../../components/business-insights";
-import getIndustryTrends from "../../components/industry-trends";
-import { conductMarketAnalysis } from "../../components/market-analysis";
+import { NextApiRequest, NextApiResponse } from "next";
+import { openai } from "./utils";
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method === 'POST') {
-    try {
-    });
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse
+) {
+  if (req.method !== "POST") {
+    res.setHeader("Allow", ["POST"]);
+    return res.status(405).end(`Method ${req.method} Not Allowed`);
   }
-});
 
-app.post("/api/expand-node", async (req, res) => {
-  const { nodeId, nodeName, initialIdea, depth, parentChain, selectedNodes } =
-    req.body;
-  console.log("Received request:", {
-    nodeId,
-    nodeName,
-    initialIdea,
-    depth,
-    parentChain,
-    selectedNodes,
-  });
   try {
-    // Ensure parentChain is an array
+    const { nodeId, nodeName, initialIdea, depth, parentChain, selectedNodes } =
+      req.body;
+    console.log("Received request:", {
+      nodeId,
+      nodeName,
+      initialIdea,
+      depth,
+      parentChain,
+      selectedNodes,
+    });
+
     const parentChainArray = Array.isArray(parentChain) ? parentChain : [];
     const parentChainString = [...parentChainArray, nodeName].join(" > ");
 
@@ -32,7 +30,6 @@ app.post("/api/expand-node", async (req, res) => {
 
     console.log("uniqueContext before filtering:", uniqueContext);
 
-    // First, ensure all items in uniqueContext are strings
     const uniqueContextStrings = uniqueContext.filter(
       (item): item is string => typeof item === "string"
     );
@@ -61,7 +58,7 @@ app.post("/api/expand-node", async (req, res) => {
     console.log("Sending request to OpenAI with prompt:", promptContent);
 
     const completion = await openai.chat.completions.create({
-      model: "gpt-4o",
+      model: "gpt-4",
       messages: [
         {
           role: "system",
@@ -85,12 +82,10 @@ app.post("/api/expand-node", async (req, res) => {
       throw new Error("Received null response from OpenAI");
     }
 
-    // Remove markdown formatting if present
     if (responseContent.startsWith("```json")) {
       responseContent = responseContent.replace(/```json\n|\n```/g, "");
     }
 
-    // Now parse the JSON
     const parsedResponse = JSON.parse(responseContent);
 
     console.log(
@@ -117,12 +112,6 @@ app.post("/api/expand-node", async (req, res) => {
     res.status(500).json({
       error: "Error expanding node",
       details: error instanceof Error ? error.message : String(error),
-    } catch (error) {
-      console.error(`Error in expand-node:`, error);
-      res.status(500).json({ error: `Error in expand-node` });
-    }
-  } else {
-    res.setHeader('Allow', ['POST']);
-    res.status(405).end(`Method ${req.method} Not Allowed`);
+    });
   }
 }
