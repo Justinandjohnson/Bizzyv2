@@ -1,0 +1,8 @@
+hey, so you need to change the API_URL in the enhanced-brainstormer.tsx file to the backend URL which is localhost:3001
+
+
+that's why it's not working, uhhh, i love you, have fun with this. 
+
+Hopefully you're not reading while your in Austin. 
+
+You should be taking a break. 
