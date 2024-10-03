@@ -17,7 +17,6 @@
     "vercel-build": "npm run build"
   },
   "dependencies": {
-    "@next/swc-darwin-arm64": "^14.2.13",
     "@radix-ui/react-label": "^2.1.0",
     "@radix-ui/react-progress": "^1.1.0",
     "@radix-ui/react-scroll-area": "^1.1.0",
@@ -40,7 +39,7 @@
     "express": "^4.18.2",
     "framer-motion": "^11.9.0",
     "lucide-react": "^0.294.0",
-    "next": "^14.2.13",
+    "next": "^14.2.14",
     "node-cache": "^5.1.2",
     "openai": "^4.0.0",
     "react": "^18.3.1",
@@ -79,6 +78,7 @@
     }
   },
   "engines": {
-    "node": ">=18.18.0"
+    "node": ">=18.18.0",
+    "npm": ">=9.6.7"
   }
 }

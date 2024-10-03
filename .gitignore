@@ -1,2 +1,7 @@
 node_modules
 .env
+.DS_Store
+**/.DS_Store
+public/vecteezy_twisted-gradient-color-pastel-stripes-rippling-background_2018399.mov
+.env.local
+.vercel

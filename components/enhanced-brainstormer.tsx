@@ -36,7 +36,7 @@ import dynamic from "next/dynamic";
 import {
   ForceGraphMethods,
   NodeObject as ForceGraphNodeObject,
-  LinkObject,
+  ForceGraphProps,
 } from "react-force-graph-2d";
 import { debounce } from "lodash";
 import * as d3 from "d3-force";
@@ -53,6 +53,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import * as d3Force from "d3-force";
+import { NodeObject, LinkObject } from "force-graph";
 import { mean } from "d3-array";
 import { ForceControlPanel } from "./ForceControlPanel";
 import {
@@ -71,6 +72,11 @@ interface ExtendedMarketAnalysis extends MarketAnalysis {
   errorMessage?: string;
 }
 
+interface ExtendedForceGraphMethods extends ForceGraphMethods<Node, Link> {
+  canvas: HTMLCanvasElement;
+  // Add any additional methods you need
+}
+
 const ForceGraph2D = dynamic(() => import("react-force-graph-2d"), {
   ssr: false,
   loading: () => <div>Loading graph...</div>,
@@ -79,10 +85,16 @@ const ForceGraph2D = dynamic(() => import("react-force-graph-2d"), {
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 console.log("API_URL:", API_URL);
 
-interface Node extends ForceGraphNodeObject {
-  id: string;
+interface Node {
+  id: string | number;
   name: string;
   val: number;
+  x?: number;
+  y?: number;
+  vx?: number;
+  vy?: number;
+  fx?: number | undefined; // Remove null
+  fy?: number | undefined; // Remove null
   color?: string;
   expanded?: boolean;
   parentId?: string;
@@ -90,7 +102,7 @@ interface Node extends ForceGraphNodeObject {
   clicked?: boolean;
 }
 
-interface Link extends LinkObject {
+interface Link {
   source: string | Node;
   target: string | Node;
   distance?: number;
@@ -276,11 +288,6 @@ const extractInitialSteps = (details: string) => {
     : [];
 };
 
-interface ExtendedForceGraphMethods
-  extends ForceGraphMethods<NodeObject, LinkObject> {
-  canvas: HTMLCanvasElement;
-}
-
 export function EnhancedBrainstormer() {
   const [messages, setMessages] = useState<
     { text: string; sender: "user" | "ai" }[]
@@ -374,7 +381,7 @@ export function EnhancedBrainstormer() {
   const [showPitchOverlay, setShowPitchOverlay] = useState(false);
   const [isPitchPanelCollapsed, setIsPitchPanelCollapsed] = useState(false);
 
-  const graphRef = useRef<ExtendedForceGraphMethods>(null);
+  const graphRef = useRef<any>(null);
   const workerRef = useRef<Worker | null>(null);
 
   useEffect(() => {
@@ -395,35 +402,22 @@ export function EnhancedBrainstormer() {
   useEffect(() => {
     if (graphRef.current) {
       graphRef.current
-        .d3Force(
-          "link",
-          d3
-            .forceLink()
-            .id((d: any) => d.id)
-            .distance((link: any) => link.distance || NODE_DISTANCE * 1.2)
-            .strength(linkStrength)
-        )
-        .d3Force("charge", d3.forceManyBody().strength(chargeStrength))
-        .d3Force(
-          "collide",
-          d3.forceCollide(NODE_DISTANCE / 2).strength(collideStrength)
-        )
-        .d3Force(
-          "center",
-          d3
-            .forceCenter(mindMapWidth / 2, mindMapHeight / 2)
-            .strength(centerStrength)
-        );
+        .d3Force("link")
+        .distance((link: any) => link.distance || NODE_DISTANCE * 1.2)
+        .strength(linkStrength);
+
+      graphRef.current.d3Force("charge").strength(chargeStrength);
+
+      graphRef.current
+        .d3Force("collide")
+        .radius(NODE_DISTANCE / 2)
+        .strength(collideStrength);
+
+      graphRef.current.d3Force("center").strength(centerStrength);
+
       graphRef.current.d3ReheatSimulation();
     }
-  }, [
-    linkStrength,
-    chargeStrength,
-    collideStrength,
-    centerStrength,
-    mindMapWidth,
-    mindMapHeight,
-  ]);
+  }, [linkStrength, chargeStrength, collideStrength, centerStrength]);
 
   useEffect(() => {
     setMindMapWidth(window.innerWidth);
@@ -776,9 +770,9 @@ export function EnhancedBrainstormer() {
 
   const expandNode = async (node: Node) => {
     if (node.expanded || graphData.nodes.length >= 32) return;
-    setExpandingNodes((prev) => new Set(prev).add(node.id));
-    setExpandingNodeProgress((prev) => ({ ...prev, [node.id]: 0 }));
-    setActiveNode(node.id);
+    setExpandingNodes((prev) => new Set(prev).add(String(node.id)));
+    setExpandingNodeProgress((prev) => ({ ...prev, [String(node.id)]: 0 }));
+    setActiveNode(String(node.id));
 
     try {
       // Start progress animation
@@ -787,7 +781,7 @@ export function EnhancedBrainstormer() {
         progress += 5;
         setExpandingNodeProgress((prev) => ({
           ...prev,
-          [node.id]: Math.min(progress, 90),
+          [String(node.id)]: Math.min(progress, 90),
         }));
       }, 50);
 
@@ -795,11 +789,11 @@ export function EnhancedBrainstormer() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          nodeId: node.id,
+          nodeId: node.id.toString(),
           nodeName: node.name,
           initialIdea: initialIdeaInput,
           depth: node.depth || 1,
-          parentChain: getParentChain(node.id, graphData), // Pass graphData here
+          parentChain: getParentChain(node.id.toString(), graphData),
           selectedNodes: clickedNodes,
         }),
       });
@@ -818,7 +812,7 @@ export function EnhancedBrainstormer() {
 
       // Stop progress animation
       clearInterval(progressInterval);
-      setExpandingNodeProgress((prev) => ({ ...prev, [node.id]: 100 }));
+      setExpandingNodeProgress((prev) => ({ ...prev, [String(node.id)]: 100 }));
 
       if (newData.nodes && Array.isArray(newData.nodes)) {
         const existingChildNodes = graphData.nodes.filter(
@@ -909,12 +903,12 @@ export function EnhancedBrainstormer() {
       setTimeout(() => {
         setExpandingNodes((prev) => {
           const newSet = new Set(prev);
-          newSet.delete(node.id);
+          newSet.delete(String(node.id));
           return newSet;
         });
         setExpandingNodeProgress((prev) => {
           const newProgress = { ...prev };
-          delete newProgress[node.id];
+          delete newProgress[String(node.id)];
           return newProgress;
         });
         setActiveNode(null);
@@ -969,11 +963,11 @@ export function EnhancedBrainstormer() {
     }
   };
 
-  const handleZoomToFit = useCallback(() => {
+  const handleZoomToFit = () => {
     if (graphRef.current) {
-      graphRef.current.zoomToFit(400, 20);
+      (graphRef.current as any).zoomToFit(400);
     }
-  }, []);
+  };
 
   const handleCenterOnLastNode = useCallback(() => {
     if (graphRef.current && lastGeneratedNodeId) {
@@ -994,7 +988,7 @@ export function EnhancedBrainstormer() {
         id: newNodeId,
         name: "New Idea",
         val: 15,
-        parentId: parentNode.id,
+        parentId: parentNode.id?.toString(),
         depth: (parentNode.depth || 0) + 1,
         fx: undefined,
         fy: undefined,
@@ -1410,11 +1404,10 @@ export function EnhancedBrainstormer() {
             <div className="relative pt-1">
               <div className="overflow-hidden h-2 mb-4 text-xs flex rounded bg-purple-200">
                 <motion.div
-                  style={{ width: `${progress}%` }}
-                  className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-purple-500"
                   initial={{ width: 0 }}
                   animate={{ width: `${progress}%` }}
                   transition={{ duration: 0.5 }}
+                  className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-purple-500"
                 />
               </div>
             </div>
@@ -1465,26 +1458,8 @@ export function EnhancedBrainstormer() {
     <>
       <ResizableStyles />
       <div className="relative min-h-screen w-full overflow-hidden">
-        {/* Video Background */}
-        {isMounted && (
-          <video
-            autoPlay
-            loop
-            muted
-            playsInline
-            preload="auto"
-            className="absolute top-0 left-0 w-full h-full object-cover z-0"
-          >
-            <source
-              src="/vecteezy_twisted-gradient-color-pastel-stripes-rippling-background_2018399.mov"
-              type="video/quicktime"
-            />
-            Your browser does not support the video tag.
-          </video>
-        )}
-
-        {/* Content Overlay */}
-        <div className="relative z-10 min-h-screen w-full bg-black bg-opacity-50 flex items-center justify-center p-4">
+        {/* Content */}
+        <div className="relative z-10 min-h-screen w-full bg-gradient-to-br from-purple-100 to-indigo-200 flex items-center justify-center p-4">
           <div className="container mx-auto max-w-full h-full flex flex-col">
             <Card className="flex-grow shadow-lg bg-white bg-opacity-90 backdrop-blur-sm overflow-hidden">
               <h1 className="text-3xl font-bold mb-6 text-[#2D3748] flex items-center">
@@ -1582,15 +1557,8 @@ export function EnhancedBrainstormer() {
                           style={{ width: mindMapWidth, height: mindMapHeight }}
                         >
                           <ForceGraph2D
-                            ref={
-                              graphRef as React.MutableRefObject<ExtendedForceGraphMethods>
-                            }
-                            graphData={
-                              graphData as unknown as {
-                                nodes: NodeObject[];
-                                links: LinkObject[];
-                              }
-                            }
+                            ref={graphRef as any}
+                            graphData={graphData}
                             nodeLabel="name"
                             nodeAutoColorBy="group"
                             nodeVal={(node) => (node as Node).val}
@@ -1761,61 +1729,8 @@ export function EnhancedBrainstormer() {
                             onNodeDrag={handleNodeDrag}
                             onNodeDragEnd={handleNodeDragEnd}
                             onBackgroundClick={handleBackgroundClick}
-                            d3Force={(engine: ForceGraphInstance) => {
-                              engine
-                                .force(
-                                  "link",
-                                  d3
-                                    .forceLink<Node, Link>()
-                                    .id((d) => d.id)
-                                    .distance(
-                                      (link) =>
-                                        link.distance || NODE_DISTANCE * 1.2
-                                    )
-                                    .strength(linkStrength)
-                                )
-                                .force(
-                                  "charge",
-                                  d3
-                                    .forceManyBody<Node>()
-                                    .strength(chargeStrength)
-                                )
-                                .force(
-                                  "collide",
-                                  d3
-                                    .forceCollide<Node>(NODE_DISTANCE / 2)
-                                    .strength(collideStrength)
-                                )
-                                .force(
-                                  "center",
-                                  d3
-                                    .forceCenter(
-                                      mindMapWidth / 2,
-                                      mindMapHeight / 2
-                                    )
-                                    .strength(centerStrength)
-                                );
-                            }}
-                            cooldownTicks={100}
-                            enableNodeDrag={true}
-                            enableZoomPanInteraction={true}
-                            onNodeHover={(node) => {
-                              setHoveredNode(node as Node | null);
-                            }}
-                            onBackgroundRightClick={(event) => {
-                              // Handle right-click on background if needed
-                            }}
-                            expandingNodes={expandingNodes}
-                            d3AlphaDecay={0.02}
-                            d3VelocityDecay={0.3}
-                            linkWidth={2}
-                            linkColor={() => "rgba(0, 0, 0, 0.2)"}
                             width={mindMapWidth}
                             height={mindMapHeight}
-                            onEngineStop={() => {
-                              graphRef.current?.zoomToFit(400, 100);
-                              graphRef.current?.d3ReheatSimulation();
-                            }}
                           />
                           <div className="absolute top-2 right-2 flex flex-col items-end space-y-2">
                             <div className="flex space-x-2">
