@@ -2,14 +2,11 @@
   "version": 2,
   "builds": [
     {
-      "src": "backend/server.ts",
-      "use": "@vercel/node"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "backend/server.ts"
+      "src": "package.json",
+      "use": "@vercel/next",
+      "config": {
+        "nextConfig": "next.config.js"
+      }
     }
   ]
 }

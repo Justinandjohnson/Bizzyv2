@@ -13,6 +13,6 @@
       "*": ["../components/*"]
     }
   },
-  "include": ["**/*.ts", "../components/**/*.ts"],
+  "include": ["**/*.ts", "../components/**/*.ts", "../../OGcode/server.ts"],
   "exclude": ["node_modules"]
 }

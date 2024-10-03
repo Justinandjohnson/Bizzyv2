@@ -82,7 +82,7 @@ const ForceGraph2D = dynamic(() => import("react-force-graph-2d"), {
   loading: () => <div>Loading graph...</div>,
 });
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+const API_URL = "/api";
 console.log("API_URL:", API_URL);
 
 interface Node {
@@ -1247,7 +1247,7 @@ export function EnhancedBrainstormer() {
       .size([mindMapHeight * 0.9, mindMapWidth * 0.9]);
     const root = treeLayout(hierarchyData as any);
 
-    const newNodes = root.descendants().map((d) => ({
+    const newNodes = root.descendants().map((d: any) => ({
       ...d.data,
       x: d.y + mindMapWidth * 0.05, // Swap x and y to make the tree horizontal
       y: d.x + mindMapHeight * 0.05,
